@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const connectDB = require('./db'); // Import your MongoDB connection function
+const authRoutes = require('./routes/auth');
+const protectedRoutes = require('./routes/protectedRoutes');
 
 // Import Mongoose models
 const Book = require('./models/Book');
