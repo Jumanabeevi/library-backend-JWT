@@ -1,115 +1,157 @@
 const express = require('express');
+const mongoose = require('mongoose');
+const connectDB = require('./db'); // Import your MongoDB connection function
+
+// Import Mongoose models
+const Book = require('./models/Book');
+const Author = require('./models/Author');
+
 const app = express();
 const PORT = 3000;
 
+// Connect to MongoDB
+connectDB();
+
+// Middleware to handle JSON data
 app.use(express.json());
 
-// Sample data
-let books = [
-    { id: 1, title: '1984', authorId: 1 },
-    { id: 2, title: 'To Kill a Mockingbird', authorId: 2 },
-];
-
-let authors = [
-    { id: 1, name: 'George Orwell' },
-    { id: 2, name: 'Harper Lee' },
-];
-
 // CRUD for Books
-app.get('/books', (req, res) => {
+app.get('/books', async (req, res) => {
+  try {
+    const books = await Book.find().populate('authorId');
     res.json(books);
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 
-app.get('/books/:id', (req, res) => {
-    const bookId = parseInt(req.params.id);
-    const book = books.find(b => b.id === bookId);
+app.get('/books/:id', async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id).populate('authorId');
     if (book) {
-        res.json(book);
+      res.json(book);
     } else {
-        res.status(404).send('Book not found');
+      res.status(404).send('Book not found');
     }
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 
-app.post('/books', (req, res) => {
-    const newBook = {
-        id: books.length + 1,
+app.post('/books', async (req, res) => {
+  try {
+    const newBook = new Book({
+      title: req.body.title,
+      authorId: req.body.authorId,
+    });
+    await newBook.save();
+    res.status(201).json(newBook);
+  } catch (error) {
+    res.status(400).send('Bad request');
+  }
+});
+
+app.put('/books/:id', async (req, res) => {
+  try {
+    const updatedBook = await Book.findByIdAndUpdate(
+      req.params.id,
+      {
         title: req.body.title,
         authorId: req.body.authorId,
-    };
-    books.push(newBook);
-    res.status(201).json(newBook);
+      },
+      { new: true }
+    );
+    if (updatedBook) {
+      res.json(updatedBook);
+    } else {
+      res.status(404).send('Book not found');
+    }
+  } catch (error) {
+    res.status(400).send('Bad request');
+  }
 });
 
-app.put('/books/:id', (req, res) => {
-    const bookId = parseInt(req.params.id);
-    const book = books.find(b => b.id === bookId);
-    if (book) {
-        book.title = req.body.title;
-        book.authorId = req.body.authorId;
-        res.json(book);
+app.delete('/books/:id', async (req, res) => {
+  try {
+    const deletedBook = await Book.findByIdAndDelete(req.params.id);
+    if (deletedBook) {
+      res.status(204).send();
     } else {
-        res.status(404).send('Book not found');
+      res.status(404).send('Book not found');
     }
-});
-
-app.delete('/books/:id', (req, res) => {
-    const bookId = parseInt(req.params.id);
-    const bookIndex = books.findIndex(b => b.id === bookId);
-    if (bookIndex !== -1) {
-        books.splice(bookIndex, 1);
-        res.status(204).send();
-    } else {
-        res.status(404).send('Book not found');
-    }
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 
 // CRUD for Authors
-app.get('/authors', (req, res) => {
+app.get('/authors', async (req, res) => {
+  try {
+    const authors = await Author.find();
     res.json(authors);
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 
-app.get('/authors/:id', (req, res) => {
-    const authorId = parseInt(req.params.id);
-    const author = authors.find(a => a.id === authorId);
+app.get('/authors/:id', async (req, res) => {
+  try {
+    const author = await Author.findById(req.params.id);
     if (author) {
-        res.json(author);
+      res.json(author);
     } else {
-        res.status(404).send('Author not found');
+      res.status(404).send('Author not found');
     }
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 
-app.post('/authors', (req, res) => {
-    const newAuthor = {
-        id: authors.length + 1,
-        name: req.body.name,
-    };
-    authors.push(newAuthor);
+app.post('/authors', async (req, res) => {
+  try {
+    const newAuthor = new Author({
+      name: req.body.name,
+    });
+    await newAuthor.save();
     res.status(201).json(newAuthor);
+  } catch (error) {
+    res.status(400).send('Bad request');
+  }
 });
 
-app.put('/authors/:id', (req, res) => {
-    const authorId = parseInt(req.params.id);
-    const author = authors.find(a => a.id === authorId);
-    if (author) {
-        author.name = req.body.name;
-        res.json(author);
+app.put('/authors/:id', async (req, res) => {
+  try {
+    const updatedAuthor = await Author.findByIdAndUpdate(
+      req.params.id,
+      {
+        name: req.body.name,
+      },
+      { new: true }
+    );
+    if (updatedAuthor) {
+      res.json(updatedAuthor);
     } else {
-        res.status(404).send('Author not found');
+      res.status(404).send('Author not found');
     }
+  } catch (error) {
+    res.status(400).send('Bad request');
+  }
 });
 
-app.delete('/authors/:id', (req, res) => {
-    const authorId = parseInt(req.params.id);
-    const authorIndex = authors.findIndex(a => a.id === authorId);
-    if (authorIndex !== -1) {
-        authors.splice(authorIndex, 1);
-        res.status(204).send();
+app.delete('/authors/:id', async (req, res) => {
+  try {
+    const deletedAuthor = await Author.findByIdAndDelete(req.params.id);
+    if (deletedAuthor) {
+      res.status(204).send();
     } else {
-        res.status(404).send('Author not found');
+      res.status(404).send('Author not found');
     }
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
